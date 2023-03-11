@@ -16,8 +16,7 @@ namespace MyMediator
 
         public void Run()
         {
-            // TODO 处理需要响应的请求
-            InterceptDelegate<TRequest> pipe = (request, next) => next(request);
+            var pipe = Handle;
 
             foreach (var middleware in _middleware)
             {
@@ -26,6 +25,14 @@ namespace MyMediator
             }
 
             pipe.Invoke(_requestContext.Request, ThrowEmptyPipelineException);
+        }
+
+        private void Handle(TRequest request, RequestDelegate<TRequest> next)
+        {
+            foreach (var handler in _handlers)
+                handler.Handle(request);
+
+            next(request);
         }
 
         private void ThrowEmptyPipelineException(TRequest request)
@@ -43,8 +50,8 @@ namespace MyMediator
         private readonly IRequestMiddleware<TRequest>[] _middleware;
 
         public Pipeline(
-            IRequestContext<TRequest, TResponse> context, 
-            IRequestHandler<TRequest, TResponse>[] requestHandlers, 
+            IRequestContext<TRequest, TResponse> context,
+            IRequestHandler<TRequest, TResponse>[] requestHandlers,
             IRequestMiddleware<TRequest>[] requestMiddlewares)
         {
             _requestContext = context;
@@ -54,8 +61,7 @@ namespace MyMediator
 
         public void Run()
         {
-            // TODO 处理需要响应的请求
-            InterceptDelegate<TRequest> pipe = (request, next) => next(request);
+            var pipe = Handle;
 
             foreach (var middleware in _middleware)
             {
@@ -64,6 +70,14 @@ namespace MyMediator
             }
 
             pipe.Invoke(_requestContext.Request, ThrowEmptyPipelineException);
+        }
+
+        private void Handle(TRequest request, RequestDelegate<TRequest> next)
+        {
+            foreach (var handler in _handlers)
+                _requestContext.Response = handler.Handle(request);
+
+            next(request);
         }
 
         private void ThrowEmptyPipelineException(TRequest request)

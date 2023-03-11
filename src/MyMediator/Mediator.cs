@@ -1,4 +1,6 @@
 ﻿
+using Microsoft.Extensions.DependencyInjection;
+
 namespace MyMediator
 {
     internal class Mediator : IMediator
@@ -12,14 +14,18 @@ namespace MyMediator
 
         public void Notify<TRequest>(TRequest request) where TRequest : IRequest
         {
-            throw new NotImplementedException();
-        }
+            using var scope = _serviceProvider.CreateScope();
 
-        public TResponse Notify<TRequest, TResponse>(TRequest request)
-            where TRequest : IRequest<TResponse>
-            where TResponse : IResponse
-        {
-            throw new NotImplementedException();
+            var provider = scope.ServiceProvider;
+
+            // 这里因为 Microsoft 的 scope 实现不能添加服务，所以手动配置
+            var context = new RequestContext<TRequest>(request);
+            var handlers = provider.GetServices<IRequestHandler<TRequest>>();
+            var middlewares = provider.GetServices<IRequestMiddleware<TRequest>>();
+
+            var pipe = new Pipeline<TRequest>(context, handlers.ToArray(), middlewares.ToArray());
+
+            pipe.Run();
         }
 
         public void Send<TRequest>(TRequest request) where TRequest : IRequest

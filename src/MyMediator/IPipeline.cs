@@ -10,6 +10,5 @@
         where TRequest : IRequest<TResponse>
         where TResponse : IResponse
     {
-        void Run();
     }
 }

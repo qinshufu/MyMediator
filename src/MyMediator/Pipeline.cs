@@ -1,4 +1,4 @@
-﻿namespace MyMediator
+namespace MyMediator
 {
     internal class Pipeline<TRequest> : IPipeline<TRequest>
         where TRequest : IRequest
@@ -28,12 +28,6 @@
             pipe.Invoke(_requestContext.Request, ThrowEmptyPipelineException);
         }
 
-        private void Handle(TRequest request)
-        {
-            foreach (var handler in _handlers)
-                handler.Handle(_requestContext.Request);
-        }
-
         private void ThrowEmptyPipelineException(TRequest request)
         {
             throw new InvalidOperationException("空的请求管道");
@@ -48,7 +42,10 @@
         private readonly IRequestHandler<TRequest, TResponse>[] _handlers;
         private readonly IRequestMiddleware<TRequest>[] _middleware;
 
-        public Pipeline(IRequestContext<TRequest, TResponse> context, IRequestHandler<TRequest, TResponse>[] requestHandlers, IRequestMiddleware<TRequest>[] requestMiddlewares)
+        public Pipeline(
+            IRequestContext<TRequest, TResponse> context, 
+            IRequestHandler<TRequest, TResponse>[] requestHandlers, 
+            IRequestMiddleware<TRequest>[] requestMiddlewares)
         {
             _requestContext = context;
             _handlers = requestHandlers;
@@ -67,12 +64,6 @@
             }
 
             pipe.Invoke(_requestContext.Request, ThrowEmptyPipelineException);
-        }
-
-        private void Handle(TRequest request)
-        {
-            foreach (var handler in _handlers)
-                _requestContext.Response = handler.Handle(_requestContext.Request);
         }
 
         private void ThrowEmptyPipelineException(TRequest request)

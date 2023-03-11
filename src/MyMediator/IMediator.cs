@@ -1,4 +1,4 @@
-﻿namespace MyMediator;
+namespace MyMediator;
 
 public interface IMediator
 {

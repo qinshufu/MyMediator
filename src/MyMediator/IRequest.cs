@@ -1,4 +1,4 @@
-﻿namespace MyMediator
+namespace MyMediator
 {
     public interface IRequest
     {
@@ -6,7 +6,7 @@
 
 
 
-    public interface IRequest<TResponse> where TResponse : IResponse
+    public interface IRequest<TResponse> : IRequest where TResponse : IResponse
     {
     }
 }

@@ -1,6 +1,6 @@
 namespace MyMediator
 {
-    internal class Pipeline<TRequest> : IPipeline<TRequest>
+    public class Pipeline<TRequest> : IPipeline<TRequest>
         where TRequest : IRequest
     {
         private readonly IRequestHandler<TRequest>[] _handlers;
@@ -41,7 +41,7 @@ namespace MyMediator
         }
     }
 
-    internal class Pipeline<TRequest, TResponse> : IPipeline<TRequest, TResponse>
+    public class Pipeline<TRequest, TResponse> : IPipeline<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
         where TResponse : IResponse
     {

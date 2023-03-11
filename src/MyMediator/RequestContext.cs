@@ -1,6 +1,6 @@
-﻿namespace MyMediator
+namespace MyMediator
 {
-    internal class RequestContext<TRequest> : IRequestContext<TRequest> where TRequest : IRequest
+    public class RequestContext<TRequest> : IRequestContext<TRequest> where TRequest : IRequest
     {
         private readonly TRequest _request;
 
@@ -13,7 +13,7 @@
     }
 
 
-    internal class RequestContext<TRequest, TResponse> : IRequestContext<TRequest, TResponse>
+    public class RequestContext<TRequest, TResponse> : IRequestContext<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
         where TResponse : IResponse
     {

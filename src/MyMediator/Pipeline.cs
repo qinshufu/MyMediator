@@ -39,4 +39,45 @@
             throw new InvalidOperationException("空的请求管道");
         }
     }
+
+    internal class Pipeline<TRequest, TResponse> : IPipeline<TRequest, TResponse>
+        where TRequest : IRequest<TResponse>
+        where TResponse : IResponse
+    {
+        private readonly IRequestContext<TRequest, TResponse> _requestContext;
+        private readonly IRequestHandler<TRequest, TResponse>[] _handlers;
+        private readonly IRequestMiddleware<TRequest>[] _middleware;
+
+        public Pipeline(IRequestContext<TRequest, TResponse> context, IRequestHandler<TRequest, TResponse>[] requestHandlers, IRequestMiddleware<TRequest>[] requestMiddlewares)
+        {
+            _requestContext = context;
+            _handlers = requestHandlers;
+            _middleware = requestMiddlewares;
+        }
+
+        public void Run()
+        {
+            // TODO 处理需要响应的请求
+            InterceptDelegate<TRequest> pipe = (request, next) => next(request);
+
+            foreach (var middleware in _middleware)
+            {
+                var last = pipe;
+                pipe = (request, next) => last(request, next);
+            }
+
+            pipe.Invoke(_requestContext.Request, ThrowEmptyPipelineException);
+        }
+
+        private void Handle(TRequest request)
+        {
+            foreach (var handler in _handlers)
+                _requestContext.Response = handler.Handle(_requestContext.Request);
+        }
+
+        private void ThrowEmptyPipelineException(TRequest request)
+        {
+            throw new InvalidOperationException("空的请求管道");
+        }
+    }
 }

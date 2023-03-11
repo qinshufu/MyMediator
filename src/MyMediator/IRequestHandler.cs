@@ -9,6 +9,6 @@
         where TRequest : IRequest<TResponse>
         where TResponse : IResponse
     {
-        TResponse Handle();
+        TResponse Handle(TRequest request);
     }
 }

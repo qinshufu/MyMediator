@@ -61,16 +61,18 @@ public class PipelineTest
         var context = new RequestContext<TheRequest>(request);
         var middlewareMock = new Mock<IRequestMiddleware<TheRequest>>();
 
-        var invoked = false;
+        dynamic invoked = new ExpandoObject();
+        invoked.Value = false;
 
-        middlewareMock.Setup(middleware => middleware.Handle(request)).Callback(() => invoked == true);
+        middlewareMock.Setup(middleware => middleware.Handle(request))
+            .Callback((IRequest _) => invoked.Value = true);
 
         var pipe = new Pipeline<TheRequest>(context,
             new IRequestHandler<TheRequest>[0], new[] { middlewareMock.Object });
 
         pipe.Run();
 
-        Assert.True(invoked);
+        Assert.True(invoked.Value);
     }
 
     [Theory]
@@ -82,17 +84,17 @@ public class PipelineTest
         var request = new TheRequest();
         var context = new RequestContext<TheRequest>(request);
 
-        dynamic requestHandlerConter = new ExpandoObject();
-        dynamic middlewareConter = new ExpandoObject();
+        dynamic requestHandlerCounter = new ExpandoObject();
+        dynamic middlewareCounter = new ExpandoObject();
 
-        requestHandlerConter.Conter = 0;
-        middlewareConter.Conter = 0;
+        requestHandlerCounter.Counter = 0;
+        middlewareCounter.Counter = 0;
 
         Mock<IRequestHandler<TheRequest>> CreateRequestHandlerMock()
         {
             var requestHandler = new Mock<IRequestHandler<TheRequest>>();
             requestHandler.Setup(handler => handler.Handle(request))
-                .Callback(() => middlewareConter.Conter += 1);
+                .Callback(() => requestHandlerCounter.Counter ++);
 
             return requestHandler;
         }
@@ -101,7 +103,7 @@ public class PipelineTest
         {
             var middlewareMock = new Mock<IRequestMiddleware<TheRequest>>();
             middlewareMock.Setup(handler => handler.Handle(request))
-                .Callback(() => requestHandlerConter.Conter += 1);
+                .Callback(() => middlewareCounter.Counter ++);
 
             return middlewareMock;
         }
@@ -117,7 +119,8 @@ public class PipelineTest
 
         pipe.Run();
 
-        Assert.Equal(numberOfRequestHandler, requestHandlerConter.Conter);
-        Assert.Equal(numberOfMiddleware, middlewareConter.Conter);
+        Assert.Equal(
+            (numberOfRequestHandler, numberOfMiddleware),
+            (requestHandlerCounter.Counter, middlewareCounter.Counter));
     }
 }

@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MyMediator
@@ -12,64 +12,78 @@ namespace MyMediator
             _serviceProvider = serviceProvider;
         }
 
-        public void Notify<TRequest>(TRequest request) where TRequest : IRequest => CreatePipeline(new RequestContext<TRequest>(request)).Run();
+        public void Notify(IRequest request)
+        {
+            var context = new RequestContext(request);
+            var pipe = CreatePipeline();
+
+            pipe.Run(context);
+        }
+
+        private Pipeline CreatePipeline()
+        {
+            var scope = _serviceProvider.CreateScope();
+            var anyRequestMiddlewares = scope.ServiceProvider.GetServices<IRequestMiddlewareAny>();
+            var requestMiddlewares = scope.ServiceProvider.GetServices<IRequestMiddleware>();
+            var handlers = scope.ServiceProvider.GetServices<IRequestHandler>();
+            var intercepter = CreateIntercepter(anyRequestMiddlewares, requestMiddlewares, handlers);
+            var pipe = new Pipeline(new[] { intercepter });
+
+            return pipe;
+        }
+
+        private InterceptDelegate CreateIntercepter(
+                IEnumerable<IRequestMiddlewareAny> anyRequestMiddlewares,
+                IEnumerable<IRequestMiddleware> requestMiddlewares,
+                IEnumerable<IRequestHandler> handlers)
+        {
+            var intercepter = (IRequestContext ctx, RequestDelegate next) =>
+            {
+                foreach (var mid in new dynamic[0]
+                                    .Concat(anyRequestMiddlewares)
+                                    .Concat(requestMiddlewares)
+                                    .Concat(handlers))
+                {
+                    mid.Handle(ctx);
+                }
+
+                next(ctx);
+            };
+
+            return new InterceptDelegate(intercepter);
+
+        }
 
         public TResponse Notify<TRequest, TResponse>(TRequest request)
             where TRequest : IRequest<TResponse>
             where TResponse : IResponse
         {
-            var context = new RequestContext<TRequest, TResponse>(request);
-            var pipe = CreatePipeline(context);
-            pipe.Run();
+            var context = new RequestContext(request);
+            var pipe = CreatePipeline();
+            pipe.Run(context);
 
-            return context.Response ?? throw new NullReferenceException("响应为 null");
+            return (TResponse)context.Response!;
         }
 
-        public void Send<TRequest>(TRequest request) where TRequest : IRequest => CreatePipeline(new RequestContext<TRequest>(request)).Run();
+        public void Send(IRequest request)
+        {
+            var context = new RequestContext(request);
+            var pipe = CreatePipeline();
+
+            pipe.Run(context);
+        }
 
         public TResponse Send<TRequest, TResponse>(TRequest request)
             where TRequest : IRequest<TResponse>
             where TResponse : IResponse
         {
-            var context = new RequestContext<TRequest, TResponse>(request);
-            var pipe = CreatePipeline(context);
-            pipe.Run();
+            var context = new RequestContext(request);
+            var pipe = CreatePipeline();
 
-            return context.Response ?? throw new NullReferenceException("响应为 null");
+            pipe.Run(context);
+
+            return (TResponse)context.Response!;
         }
 
-
-        private Pipeline<TRequest, TResponse> CreatePipeline<TRequest, TResponse>(IRequestContext<TRequest, TResponse> context)
-            where TRequest : IRequest<TResponse>
-            where TResponse : IResponse
-        {
-            using var scope = _serviceProvider.CreateScope();
-
-            var provider = scope.ServiceProvider;
-
-            // 这里因为 Microsoft 的 scope 实现不能添加服务，所以手动配置
-            var handlers = provider.GetServices<IRequestHandler<TRequest, TResponse>>();
-            var middlewares = provider.GetServices<IRequestMiddleware<TRequest>>();
-
-            var pipe = new Pipeline<TRequest, TResponse>(context, handlers.ToArray(), middlewares.ToArray());
-
-            return pipe;
-        }
-
-        private Pipeline<TRequest> CreatePipeline<TRequest>(IRequestContext<TRequest> context)
-            where TRequest : IRequest
-        {
-            using var scope = _serviceProvider.CreateScope();
-
-            var provider = scope.ServiceProvider;
-
-            // 这里因为 Microsoft 的 scope 实现不能添加服务，所以手动配置
-            var handlers = provider.GetServices<IRequestHandler<TRequest>>();
-            var middlewares = provider.GetServices<IRequestMiddleware<TRequest>>();
-
-            var pipe = new Pipeline<TRequest>(context, handlers.ToArray(), middlewares.ToArray());
-
-            return pipe;
-        }
     }
 }

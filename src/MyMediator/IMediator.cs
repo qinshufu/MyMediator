@@ -2,7 +2,7 @@ namespace MyMediator;
 
 public interface IMediator
 {
-    void Send<TRequest>(TRequest request) where TRequest : IRequest;
+    void Send(IRequest request);
 
 
     TResponse Send<TRequest, TResponse>(TRequest request)
@@ -10,7 +10,7 @@ public interface IMediator
         where TResponse : IResponse;
 
 
-    void Notify<TRequest>(TRequest request) where TRequest : IRequest;
+    void Notify(IRequest request);
 
 
     TResponse Notify<TRequest, TResponse>(TRequest request)

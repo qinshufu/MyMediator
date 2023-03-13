@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using System.Dynamic;
 
 namespace MyMediator.Test;
 
@@ -22,105 +21,42 @@ public class PipelineTest
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
-    public void OnlyOneRequestHandlerSuccessTest(int count)
+    public void IntercepterBreakTest(int numberOfIntercepter)
     {
-        var request = new TheRequest();
-        var context = new RequestContext<TheRequest>(request);
-        var handlers = Enumerable.Range(0, count).Select(_ =>
-        {
-            var handlerMock = new Mock<IRequestHandler<TheRequest>>();
-            handlerMock.Setup(handler => handler.Handle(request)).Callback(() => request.Counter++);
+        var values = new List<int>();
+        var intercepters = Enumerable
+            .Range(1, numberOfIntercepter)
+            .Select(num => new InterceptDelegate((ctx, next) => values.Add(num)))
+            .ToArray();
 
-            return handlerMock.Object;
-        }).ToArray();
+        var pipe = new Pipeline(intercepters);
 
+        var contextMock = new Mock<IRequestContext>();
+        pipe.Run(contextMock.Object);
 
-        var pipe = new Pipeline<TheRequest>(context, handlers, new IRequestMiddleware<TheRequest>[0]);
-
-        pipe.Run();
-
-        Assert.Equal(count, request.Counter);
+        Assert.Equal(new[] { 1 }, values);
     }
 
-    [Fact]
-    public void EmptyRequestPipelineExceptionRaiseTest()
-    {
-        var request = new TheRequest();
-        var context = new RequestContext<TheRequest>(request);
-
-        var pipe = new Pipeline<TheRequest>(context, new IRequestHandler<TheRequest>[0], new IRequestMiddleware<TheRequest>[0]);
-
-        // 空的请求管道
-        Assert.Throws<InvalidOperationException>(() => pipe.Run());
-    }
-
-    [Fact]
-    public void OnlyOneMiddlewareNotThrowEmptyPipelineExceptionTest()
-    {
-        var request = new TheRequest();
-        var context = new RequestContext<TheRequest>(request);
-        var middlewareMock = new Mock<IRequestMiddleware<TheRequest>>();
-
-        dynamic invoked = new ExpandoObject();
-        invoked.Value = false;
-
-        middlewareMock.Setup(middleware => middleware.Handle(request))
-            .Callback((IRequest _) => invoked.Value = true);
-
-        var pipe = new Pipeline<TheRequest>(context,
-            new IRequestHandler<TheRequest>[0], new[] { middlewareMock.Object });
-
-        pipe.Run();
-
-        Assert.True(invoked.Value);
-    }
 
     [Theory]
-    [InlineData(0, 1)]
-    [InlineData(1, 0)]
-    [InlineData(1, 2)]
-    public void PipelineDefaultTest(int numberOfRequestHandler, int numberOfMiddleware)
+    [InlineData(1)]
+    [InlineData(2)]
+    public void IntercepterConcatenateTest(int numberOfIntercepter)
     {
-        var request = new TheRequest();
-        var context = new RequestContext<TheRequest>(request);
-
-        dynamic requestHandlerCounter = new ExpandoObject();
-        dynamic middlewareCounter = new ExpandoObject();
-
-        requestHandlerCounter.Counter = 0;
-        middlewareCounter.Counter = 0;
-
-        Mock<IRequestHandler<TheRequest>> CreateRequestHandlerMock()
-        {
-            var requestHandler = new Mock<IRequestHandler<TheRequest>>();
-            requestHandler.Setup(handler => handler.Handle(request))
-                .Callback(() => requestHandlerCounter.Counter ++);
-
-            return requestHandler;
-        }
-
-        Mock<IRequestMiddleware<TheRequest>> CreateRequestMiddlewareMock()
-        {
-            var middlewareMock = new Mock<IRequestMiddleware<TheRequest>>();
-            middlewareMock.Setup(handler => handler.Handle(request))
-                .Callback(() => middlewareCounter.Counter ++);
-
-            return middlewareMock;
-        }
-
-        var handlers = Enumerable.Range(0, numberOfRequestHandler)
-            .Select(_ => CreateRequestHandlerMock().Object)
-            .ToArray();
-        var middlewares = Enumerable.Range(0, numberOfMiddleware)
-            .Select(_ => CreateRequestMiddlewareMock().Object)
+        var values = new List<int>();
+        var intercepters = Enumerable.Range(1, numberOfIntercepter)
+            .Select(num => new InterceptDelegate((ctx, next) =>
+            {
+                values.Add(num);
+                next(ctx);
+            }))
             .ToArray();
 
-        var pipe = new Pipeline<TheRequest>(context, handlers, middlewares);
+        var pipe = new Pipeline(intercepters);
 
-        pipe.Run();
+        var contextMock = new Mock<IRequestContext>();
+        pipe.Run(contextMock.Object);
 
-        Assert.Equal(
-            (numberOfRequestHandler, numberOfMiddleware),
-            (requestHandlerCounter.Counter, middlewareCounter.Counter));
+        Assert.Equal(Enumerable.Range(1, numberOfIntercepter).ToList(), values);
     }
 }

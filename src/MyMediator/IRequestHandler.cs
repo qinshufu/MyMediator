@@ -1,14 +1,8 @@
-﻿namespace MyMediator
+namespace MyMediator
 {
-    public interface IRequestHandler<in TRequest> where TRequest : IRequest
+    public interface IRequestHandler
     {
-        void Handle(TRequest request);
+        void Handle(IRequestContext request);
     }
 
-    public interface IRequestHandler<in TRequest, out TResponse> 
-        where TRequest : IRequest<TResponse>
-        where TResponse : IResponse
-    {
-        TResponse Handle(TRequest request);
-    }
 }

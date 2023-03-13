@@ -12,32 +12,41 @@ namespace MyMediator
             _serviceProvider = serviceProvider;
         }
 
-        public void Notify(IRequest request)
+        public void Notify<TRequest>(TRequest request)
+            where TRequest : IRequest
         {
-            var context = new RequestContext(request);
-            var pipe = CreatePipeline();
+            var context = new RequestContext<TRequest>(request);
+            var pipe = CreatePipeline<TRequest>();
 
             pipe.Run(context);
         }
 
-        private Pipeline CreatePipeline()
+        private Pipeline<TRequest> CreatePipeline<TRequest>()
+            where TRequest : IRequest
         {
             var scope = _serviceProvider.CreateScope();
-            var anyRequestMiddlewares = scope.ServiceProvider.GetServices<IRequestMiddlewareAny>();
-            var requestMiddlewares = scope.ServiceProvider.GetServices<IRequestMiddleware>();
-            var handlers = scope.ServiceProvider.GetServices<IRequestHandler>();
-            var intercepter = CreateIntercepter(anyRequestMiddlewares, requestMiddlewares, handlers);
-            var pipe = new Pipeline(new[] { intercepter });
+            var anyRequestMiddlewares = scope.ServiceProvider.GetServices<IRequestMiddlewareAny<TRequest>>()
+                        ?? new IRequestMiddlewareAny<TRequest>[0];
+            var requestMiddlewares = scope.ServiceProvider.GetServices<IRequestMiddleware<TRequest>>()
+                        ?? new IRequestMiddleware<TRequest>[0];
+            var handlers = scope.ServiceProvider.GetServices<IRequestHandler<TRequest>>()
+                        ?? new IRequestHandler<TRequest>[0];
+            var intercepter = CreateIntercepter(
+                anyRequestMiddlewares,
+                requestMiddlewares,
+                handlers);
+            var pipe = new Pipeline<TRequest>(new[] { intercepter });
 
             return pipe;
         }
 
-        private InterceptDelegate CreateIntercepter(
-                IEnumerable<IRequestMiddlewareAny> anyRequestMiddlewares,
-                IEnumerable<IRequestMiddleware> requestMiddlewares,
-                IEnumerable<IRequestHandler> handlers)
+        private InterceptDelegate<TRequest> CreateIntercepter<TRequest>(
+                IEnumerable<IRequestMiddlewareAny<TRequest>> anyRequestMiddlewares,
+                IEnumerable<IRequestMiddleware<TRequest>> requestMiddlewares,
+                IEnumerable<IRequestHandler<TRequest>> handlers)
+            where TRequest : IRequest
         {
-            var intercepter = (IRequestContext ctx, RequestDelegate next) =>
+            var intercepter = (IRequestContext<TRequest> ctx, RequestDelegate<TRequest> next) =>
             {
                 foreach (var mid in new dynamic[0]
                                     .Concat(anyRequestMiddlewares)
@@ -50,35 +59,34 @@ namespace MyMediator
                 next(ctx);
             };
 
-            return new InterceptDelegate(intercepter);
+            return new InterceptDelegate<TRequest>(intercepter);
 
         }
 
         public TResponse Notify<TRequest, TResponse>(TRequest request)
             where TRequest : IRequest<TResponse>
-            where TResponse : IResponse
         {
-            var context = new RequestContext(request);
-            var pipe = CreatePipeline();
+            var context = new RequestContext<TRequest>(request);
+            var pipe = CreatePipeline<TRequest>();
             pipe.Run(context);
 
             return (TResponse)context.Response!;
         }
 
-        public void Send(IRequest request)
+        public void Send<TRequest>(TRequest request)
+            where TRequest : IRequest
         {
-            var context = new RequestContext(request);
-            var pipe = CreatePipeline();
+            var context = new RequestContext<TRequest>(request);
+            var pipe = CreatePipeline<TRequest>();
 
             pipe.Run(context);
         }
 
         public TResponse Send<TRequest, TResponse>(TRequest request)
             where TRequest : IRequest<TResponse>
-            where TResponse : IResponse
         {
-            var context = new RequestContext(request);
-            var pipe = CreatePipeline();
+            var context = new RequestContext<TRequest>(request);
+            var pipe = CreatePipeline<TRequest>();
 
             pipe.Run(context);
 

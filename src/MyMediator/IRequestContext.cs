@@ -1,10 +1,11 @@
 namespace MyMediator
 {
-    public interface IRequestContext
+    public interface IRequestContext<TRequest>
+        where TRequest : IRequest
     {
-        IRequest Request { get; }
+        TRequest Request { get; }
 
-        IResponse? Response { get; set; }
+        object? Response { get; set; }
     }
 
 }

@@ -1,15 +1,18 @@
 namespace MyMediator
 {
-    public class RequestContext : IRequestContext
+    public record class RequestContext<TRequest> : IRequestContext<TRequest>
+        where TRequest : IRequest
     {
-        private readonly IRequest _request;
+        private readonly TRequest _request;
 
-        public RequestContext(IRequest request)
+        public RequestContext(TRequest request)
         {
             _request = request;
         }
 
-        public IResponse? Response { get; set; }
-        public IRequest Request => _request;
+        public object? Response { get; set; }
+
+        public TRequest Request => _request;
+
     }
 }

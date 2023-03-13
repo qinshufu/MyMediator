@@ -2,18 +2,18 @@ namespace MyMediator;
 
 public interface IMediator
 {
-    void Send(IRequest request);
+    void Send<TRequest>(TRequest request)
+        where TRequest : IRequest;
 
 
     TResponse Send<TRequest, TResponse>(TRequest request)
-        where TRequest : IRequest<TResponse>
-        where TResponse : IResponse;
+        where TRequest : IRequest<TResponse>;
 
 
-    void Notify(IRequest request);
+    void Notify<TRequest>(TRequest request)
+        where TRequest : IRequest;
 
 
     TResponse Notify<TRequest, TResponse>(TRequest request)
-        where TRequest : IRequest<TResponse>
-        where TResponse : IResponse;
+        where TRequest : IRequest<TResponse>;
 }

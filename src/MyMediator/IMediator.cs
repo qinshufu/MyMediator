@@ -9,11 +9,4 @@ public interface IMediator
     TResponse Send<TRequest, TResponse>(TRequest request)
         where TRequest : IRequest<TResponse>;
 
-
-    void Notify<TRequest>(TRequest request)
-        where TRequest : IRequest;
-
-
-    TResponse Notify<TRequest, TResponse>(TRequest request)
-        where TRequest : IRequest<TResponse>;
 }

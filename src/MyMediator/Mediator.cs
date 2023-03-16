@@ -12,15 +12,6 @@ namespace MyMediator
             _serviceProvider = serviceProvider;
         }
 
-        public void Notify<TRequest>(TRequest request)
-            where TRequest : IRequest
-        {
-            var context = new RequestContext<TRequest>(request);
-            var pipe = CreatePipeline<TRequest>();
-
-            pipe.Run(context);
-        }
-
         private Pipeline<TRequest> CreatePipeline<TRequest>()
             where TRequest : IRequest
         {
@@ -65,16 +56,6 @@ namespace MyMediator
 
             return new InterceptDelegate<TRequest>(intercepter);
 
-        }
-
-        public TResponse Notify<TRequest, TResponse>(TRequest request)
-            where TRequest : IRequest<TResponse>
-        {
-            var context = new RequestContext<TRequest>(request);
-            var pipe = CreatePipeline<TRequest>();
-            pipe.Run(context);
-
-            return (TResponse)context.Response!;
         }
 
         public void Send<TRequest>(TRequest request)

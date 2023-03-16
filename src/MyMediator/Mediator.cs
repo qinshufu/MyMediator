@@ -16,46 +16,28 @@ namespace MyMediator
             where TRequest : IRequest
         {
             var scope = _serviceProvider.CreateScope();
-            var anyRequestMiddlewares = scope.ServiceProvider.GetServices<IRequestMiddlewareAny<TRequest>>()
-                        ?? new IRequestMiddlewareAny<TRequest>[0];
-            var requestMiddlewares = scope.ServiceProvider.GetServices<IRequestMiddleware<TRequest>>()
-                        ?? new IRequestMiddleware<TRequest>[0];
+            var intercepters = scope.ServiceProvider.GetServices<InterceptDelegate<TRequest>>();
             var handlers = scope.ServiceProvider.GetServices<IRequestHandler<TRequest>>()
                         ?? new IRequestHandler<TRequest>[0];
 
             if (handlers.Any() is false) // is empty
                 throw new InvalidOperationException("没有有效的请求处理器，请检查是否至少注册了一个请求处理器");
 
-            var intercepter = CreateIntercepter(
-                anyRequestMiddlewares,
-                requestMiddlewares,
-                handlers);
-            var pipe = new Pipeline<TRequest>(new[] { intercepter });
-
-            return pipe;
-        }
-
-        private InterceptDelegate<TRequest> CreateIntercepter<TRequest>(
-                IEnumerable<IRequestMiddlewareAny<TRequest>> anyRequestMiddlewares,
-                IEnumerable<IRequestMiddleware<TRequest>> requestMiddlewares,
-                IEnumerable<IRequestHandler<TRequest>> handlers)
-            where TRequest : IRequest
-        {
-            var intercepter = (IRequestContext<TRequest> ctx, RequestDelegate<TRequest> next) =>
+            InterceptDelegate<TRequest> requestHandleIntercepter = (ctx, next) =>
             {
-                foreach (var mid in new IRequestHandler<TRequest>[0]
-                                    .Concat(anyRequestMiddlewares)
-                                    .Concat(requestMiddlewares)
-                                    .Concat(handlers))
+                foreach (var handler in handlers)
                 {
-                    mid.Handle(ctx);
+                    handler.Handle(ctx);
                 }
 
                 next(ctx);
             };
 
-            return new InterceptDelegate<TRequest>(intercepter);
+            var finalIntercepters = intercepters.Concat(new[] { requestHandleIntercepter }).ToArray();
 
+            var pipe = new Pipeline<TRequest>(finalIntercepters);
+
+            return pipe;
         }
 
         public void Send<TRequest>(TRequest request)

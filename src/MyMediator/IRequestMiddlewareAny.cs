@@ -7,15 +7,13 @@ namespace MyMediator
         IRequestContext<TRequest> request, RequestDelegate<TRequest> next)
         where TRequest : IRequest;
 
-    public interface IRequestMiddlewareAny<TRequest>
+    public interface IRequestMiddlewareAny<TRequest> : IRequestHandler<TRequest>
         where TRequest : IRequest
     {
-        void Handle(IRequestContext<TRequest> request);
     }
 
-    public interface IRequestMiddleware<TRequest>
+    public interface IRequestMiddleware<TRequest> : IRequestHandler<TRequest>
         where TRequest : IRequest
     {
-        void Handle(IRequestContext<TRequest> request);
     }
 }

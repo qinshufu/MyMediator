@@ -31,6 +31,10 @@ namespace MyMediator
                         ?? new IRequestMiddleware<TRequest>[0];
             var handlers = scope.ServiceProvider.GetServices<IRequestHandler<TRequest>>()
                         ?? new IRequestHandler<TRequest>[0];
+
+            if (handlers.Any() is false) // is empty
+                throw new InvalidOperationException("没有有效的请求处理器，请检查是否至少注册了一个请求处理器");
+
             var intercepter = CreateIntercepter(
                 anyRequestMiddlewares,
                 requestMiddlewares,
@@ -48,7 +52,7 @@ namespace MyMediator
         {
             var intercepter = (IRequestContext<TRequest> ctx, RequestDelegate<TRequest> next) =>
             {
-                foreach (var mid in new dynamic[0]
+                foreach (var mid in new IRequestHandler<TRequest>[0]
                                     .Concat(anyRequestMiddlewares)
                                     .Concat(requestMiddlewares)
                                     .Concat(handlers))
